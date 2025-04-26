@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Risparmio Unoenergy</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-sky-50 to-indigo-100 flex flex-col items-center p-4">
+  <header class="max-w-xl text-center mt-8 mb-6">
+    <h1 class="text-4xl font-extrabold text-indigo-700 mb-2">Scopri subito il tuo risparmio</h1>
+    <p class="text-gray-600">Basato sulle tariffe ufficiali <strong>Unoenergy – Luce Sicuro</strong></p>
+  </header>
+
+  <main id="app" class="w-full max-w-xl bg-white rounded-2xl shadow-lg p-6">
+    <!-- FORM -->
+    <form id="tool" class="space-y-5">
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Consumo annuo (kWh) *</label>
+        <input id="kwh" type="number" required min="1" step="1" placeholder="es. 2700" class="mt-1 w-full rounded-xl border-gray-300 p-3 focus:ring-indigo-500 focus:border-indigo-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Spesa annua attuale (€)</label>
+        <input id="spesa" type="number" min="0" step="0.01" placeholder="es. 520" class="mt-1 w-full rounded-xl border-gray-300 p-3 focus:ring-indigo-500 focus:border-indigo-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Tipo tariffa</label>
+        <select id="tariffa" class="mt-1 w-full rounded-xl border-gray-300 p-3 focus:ring-indigo-500 focus:border-indigo-500">
+          <option value="mono">Monoraria</option>
+          <option value="bi">Bioraria</option>
+        </select>
+      </div>
+      <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition" type="submit">Calcola</button>
+    </form>
+
+    <!-- RISULTATO -->
+    <section id="result" class="mt-6 hidden">
+      <div class="bg-indigo-50 border border-indigo-200 rounded-2xl p-5 text-center">
+        <h2 id="costotxt" class="text-xl font-semibold text-indigo-700"></h2>
+        <p id="risparmioTxt" class="text-lg mt-2"></p>
+        <a id="cta" href="#" target="_blank" rel="noopener" class="inline-flex items-center justify-center mt-4 px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium shadow-md transition">Attiva ora</a>
+      </div>
+    </section>
+
+    <!-- AGGIORNA LISTINO -->
+    <button id="refresh" class="w-full mt-8 text-sm text-indigo-600 hover:text-indigo-800 underline hidden">Aggiorna listino Unoenergy ↻</button>
+    <p id="lastupdate" class="text-xs text-gray-400 mt-2 text-center"></p>
+  </main>
+
+  <footer class="text-gray-400 text-xs mt-8 text-center max-w-xl">
+    Listino "Luce Sicuro" aggiornato automaticamente. Oneri di rete e imposte esclusi.
+  </footer>
+
+<script>
+  const euro = v => v.toLocaleString('it-IT',{style:'currency',currency:'EUR'});
+  let offers = null;
+
+  // Carica listino.json all'avvio
+  async function loadOffers(force=false){
+    const res = await fetch('listino.json'+(force?`?t=${Date.now()}`:''));
+    if(res.ok){
+      offers = await res.json();
+      document.getElementById('lastupdate').textContent = `Ultimo aggiornamento listino: ${new Date(offers.updated_at).toLocaleDateString('it-IT')}`;
+    } else {
+      alert('Impossibile caricare il listino. Riprova più tardi.');
+    }
+  }
+
+  // Calcolo costo per un'offerta e consumo
+  function costo(offer,kwh){
+    if(offer.type==='mono') return kwh*offer.price_kwh + offer.quota_annua;
+    const f1=kwh*offer.mix.F1*offer.price_kwh_F1;
+    const f23=kwh*offer.mix.F23*offer.price_kwh_F23;
+    return f1+f23+offer.quota_annua;
+  }
+
+  document.getElementById('tool').addEventListener('submit',e=>{
+    e.preventDefault();
+    if(!offers){alert('Listino non disponibile');return;}
+    const kwhEl = document.getElementById('kwh');
+    const spesaEl = document.getElementById('spesa');
+    const tarifaEl = document.getElementById('tariffa');
+
+    const consumo = parseFloat(kwhEl.value);
+    if(!consumo){ alert('Inserisci consumo valido'); return; }
+
+    const spesaVal = parseFloat(spesaEl.value);
+    const off = offers.offers.find(o=>o.type===tarifaEl.value);
+    const costUno = costo(off, consumo);
+
+    document.getElementById('costotxt').textContent = `Con "${off.name}" spenderesti circa ${euro(costUno)}/anno`;
+
+    const rispNode = document.getElementById('risparmioTxt');
+    if(spesaVal){
+      const diff = spesaVal - costUno;
+      const perc = (diff/spesaVal)*100;
+      rispNode.textContent = diff>0 ? `Risparmi ${euro(diff)} (≈ ${perc.toFixed(1)}%)`
+                                   : `Pagheresti ${euro(Math.abs(diff))} in più (≈ ${Math.abs(perc).toFixed(1)}%)`;
+    } else {
+      rispNode.textContent = '';
+    }
+
+    document.getElementById('cta').href = 'https://www.unoenergy.it/attiva?partner=GIANNI123';
+    document.getElementById('result').classList.remove('hidden');
+  });
+
+  // Pulsante Aggiorna listino
+  document.getElementById('refresh').addEventListener('click',()=>loadOffers(true));
+
+  // Init
+  loadOffers().then(()=>document.getElementById('refresh').classList.remove('hidden'));
+</script>
+</body>
+</html>
