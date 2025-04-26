@@ -1,0 +1,21 @@
+{
+  "updated_at": "2025-04-10T00:00:00+02:00",
+  "offers": [
+    {
+      "id": "sicuro_mono",
+      "name": "Luce Sicuro Monoraria",
+      "type": "mono",
+      "price_kwh": 0.15004,
+      "quota_annua": 135
+    },
+    {
+      "id": "sicuro_bi",
+      "name": "Luce Sicuro Bioraria",
+      "type": "bi",
+      "price_kwh_F1": 0.15708,
+      "price_kwh_F23": 0.15004,
+      "quota_annua": 135,
+      "mix": { "F1": 0.40, "F23": 0.60 }
+    }
+  ]
+}
